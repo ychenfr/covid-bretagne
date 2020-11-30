@@ -18,7 +18,9 @@
         };
         // Replace the data source URL on next line with your data source URL.
         var query = new google.visualization.Query('https://ychenfr.github.io/covid-bretagne/data.csv', queryOptions);
-      
+
+        // for local dev & debug, use local data and serve this html on localhost
+        <!-- var query = new google.visualization.Query('http://localhost:8080/data.csv', queryOptions);  -->
         // Optional request following the query language spec.
         query.setQuery('select *');
       
@@ -34,14 +36,22 @@
         }
         var data = response.getDataTable();
 
-        var view_1 = new google.visualization.DataView(data);
-        view_1.setColumns([0, 
-          {type: 'number', calc: delta(4), label: 'Ille-et-Vilaine(35)'},
-          {type: 'number', calc: delta(3), label: 'Morbihan (56)'},
-          {type: 'number', calc: delta(5), label: 'Finistère (29)'},
-          {type: 'number', calc: delta(6), label: "Côte d'armor (22)"},
+        var view_day = new google.visualization.DataView(data);
+        view_day.setColumns([0, 
+          {type: 'number', calc: delta(4, 1), label: 'Ille-et-Vilaine(35)'},
+          {type: 'number', calc: delta(3, 1), label: 'Morbihan (56)'},
+          {type: 'number', calc: delta(5, 1), label: 'Finistère (29)'},
+          {type: 'number', calc: delta(6, 1), label: "Côte d'armor (22)"},
           ])
-        view_1.hideRows([0]);
+        view_day.hideRows([0]);
+
+        var view_week = new google.visualization.DataView(data);
+        view_week.setColumns([0, 
+          {type: 'number', calc: delta(4, 3), label: 'Ille-et-Vilaine(35)'},
+          {type: 'number', calc: delta(3, 3), label: 'Morbihan (56)'},
+          {type: 'number', calc: delta(5, 3), label: 'Finistère (29)'},
+          {type: 'number', calc: delta(6, 3), label: "Côte d'armor (22)"},
+          ])
 
         var view_2 = new google.visualization.DataView(data);
         view_2.setColumns([0, 
@@ -49,47 +59,66 @@
           {type: 'number', sourceColumn: 8, label: 'Réanimation'},
           ])
 
-        var linechart_options_1 = {
-          'title': 'Nombre de Cas Confirmés par Département', 
-          width: 600,
-          height: 400,
+        var linechart_options_day = {
+          'title': 'Nombre de Cas Confirmés par Département (par jour)', 
+          width: 1200,
+          height: 500,
+          legend: { position: 'top', maxLines: 3 },
+          hAxis: { format: 'MMM dd' },
+        };
+
+        var linechart_options_week = {
+          'title': 'Nombre de Cas Confirmés par Département (7 jours glissants)', 
+          width: 1200,
+          height: 500,
           legend: { position: 'top', maxLines: 3 },
           hAxis: { format: 'MMM dd' },
         };
 
         var linechart_options_2 = {
           'title': 'Situation Hopital en Bretagne', 
-          width: 600,
-          height: 400,
+          width: 1200,
+          height: 500,
           legend: { position: 'top', maxLines: 3 },
           hAxis: { format: 'MMM dd' },
           isStacked: true,
         };
 
-        var chart = new google.visualization.LineChart(document.getElementById('linechart_div_1'));
-        chart.draw(view_1, linechart_options_1);
+        var chart = new google.visualization.LineChart(document.getElementById('linechart_div_day'));
+        chart.draw(view_day, linechart_options_day);
+
+        var chart = new google.visualization.LineChart(document.getElementById('linechart_div_week'));
+        chart.draw(view_week, linechart_options_week);
 
         var chart = new google.visualization.LineChart(document.getElementById('linechart_div_2'));
         chart.draw(view_2, linechart_options_2);
+
+        aggregate_week_column(data, 5)
+        
       }
 
-      function delta(columnNum) {
+      function delta(columnNum, ref) {
         function delta_column(dataTable, rowNum) { 
-          if (rowNum == 0) {
+          if (rowNum - ref < 0) {
             return 0
           } else {
-            return dataTable.getValue(rowNum, columnNum) - dataTable.getValue(rowNum-1, columnNum)
+            return dataTable.getValue(rowNum, columnNum) - dataTable.getValue(rowNum-ref, columnNum)
           }
         }
         return delta_column
       }
-      
+
+      // https://developers.google.com/chart/interactive/docs/reference#google_visualization_data_group
+
 </script>
 <body>
     <!--Table and divs that hold the pie charts-->
     <table class="columns">
       <tr>
-        <div id="linechart_div_1"></div>
+        <div id="linechart_div_day"></div>
+      </tr>
+      <tr>
+        <div id="linechart_div_week"></div>
       </tr>
       <tr>
         <div id="linechart_div_2"></div>
